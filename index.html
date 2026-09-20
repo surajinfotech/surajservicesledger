@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Complete Shop Ledger & Wallet System</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #f0f2f5;
+      color: #333;
+      padding: 10px;
+    }
+    .container {
+      max-width: 1350px;
+      background: #ffffff;
+      padding: 15px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      margin: auto;
+    }
+    h2 {
+      text-align: center;
+      color: #1a73e8;
+      font-size: 22px;
+      margin-bottom: 15px;
+    }
+    h3 {
+      text-align: center;
+      color: #444;
+      font-size: 16px;
+      margin: 20px 0 10px 0;
+    }
+
+    .wallet-card {
+      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+      color: #ffffff;
+      padding: 16px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .wallet-title {
+      font-size: 14px;
+      opacity: 0.85;
+    }
+    .wallet-balance {
+      font-size: 26px;
+      font-weight: bold;
+      color: #00ff88;
+      margin-top: 4px;
+    }
+    .wallet-info {
+      font-size: 12px;
+      background: rgba(255, 255, 255, 0.15);
+      padding: 8px 12px;
+      border-radius: 6px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+    label {
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: #444;
+      font-size: 12px;
+    }
+    input {
+      padding: 10px;
+      border: 1px solid #cccccc;
+      border-radius: 6px;
+      font-size: 14px;
+      width: 100%;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus {
+      border-color: #1a73e8;
+    }
+
+    .btn-submit {
+      grid-column: 1 / -1;
+      padding: 12px;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background 0.2s;
+      margin-top: 5px;
+    }
+    .btn-submit:active, .btn-submit:hover {
+      background-color: #218838;
+    }
+
+    .filter-section {
+      padding: 12px;
+      background: #eef5f9;
+      border-radius: 8px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-delete-all {
+      background-color: #dc3545;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .table-responsive {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      margin-top: 10px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+      min-width: 1100px;
+    }
+    th, td {
+      border: 1px solid #e0e0e0;
+      padding: 8px 4px;
+      text-align: center;
+      white-space: nowrap;
+    }
+    th {
+      background-color: #1a73e8;
+      color: white;
+      font-weight: 600;
+    }
+    tr:nth-child(even) {
+      background-color: #f8f9fa;
+    }
+
+    .total-box {
+      margin-top: 15px;
+      background: #28a745;
+      color: white;
+      padding: 12px;
+      border-radius: 6px;
+      font-size: 15px;
+      font-weight: bold;
+      text-align: right;
+    }
+    .delete-btn {
+      background: #dc3545;
+      color: white;
+      border: none;
+      padding: 4px 8px;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 11px;
+    }
+
+    @media (min-width: 768px) {
+      body { padding: 20px; }
+      .container { padding: 25px; }
+      h2 { font-size: 26px; }
+      .form-grid { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+      label { font-size: 13px; }
+      table { font-size: 12px; }
+      th, td { padding: 10px 6px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Daily Counter, Service & Wallet Ledger</h2>
+
+    <div class="wallet-card">
+      <div>
+        <div class="wallet-title">Main Portal Wallet Balance</div>
+        <div class="wallet-balance" id="walletBalanceDisplay">₹0.00</div>
+      </div>
+      <div class="wallet-info">
+        <span>Full Details & Verified Engine</span>
+      </div>
+    </div>
+
+    <form id="ledgerForm">
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="entryDate">Tarikh (Date)</label>
+          <input type="date" id="entryDate" required>
+        </div>
+        <div class="form-group">
+          <label for="openingCash">Subah Extra Cash (₹)</label>
+          <input type="number" id="openingCash" placeholder="Extra Cash Add">
+        </div>
+        <div class="form-group">
+          <label for="totalWithdrawal">Cash Nikasi (Cash Out ₹)</label>
+          <input type="number" id="totalWithdrawal" placeholder="Wallet (+) | Cash (-)">
+        </div>
+        <div class="form-group">
+          <label for="totalDeposit">Cash Jama (Cash In ₹)</label>
+          <input type="number" id="totalDeposit" placeholder="Wallet (-) | Cash (+)">
+        </div>
+        <div class="form-group">
+          <label for="upiReceived">UPI Recd / Wallet In (₹)</label>
+          <input type="number" id="upiReceived" placeholder="Wallet (+) | Cash (-)">
+        </div>
+        <div class="form-group">
+          <label for="upiSent">UPI Bheja / Send UPI (₹)</label>
+          <input type="number" id="upiSent" placeholder="Cash In (+)">
+        </div>
+        <div class="form-group">
+          <label for="moveToBank">Move to Bank (₹)</label>
+          <input type="number" id="moveToBank" placeholder="Wallet (-)">
+        </div>
+        <div class="form-group">
+          <label for="bankTransferFee">Move To Bank Fee (₹)</label>
+          <input type="number" id="bankTransferFee" placeholder="Fee (Wallet & Profit -)">
+        </div>
+        <div class="form-group">
+          <label for="sellingPrice">Saman Selling Price (₹)</label>
+          <input type="number" id="sellingPrice" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label for="costPrice">Saman Cost Price (₹)</label>
+          <input type="number" id="costPrice" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label for="formCharge">Form Total Charge (₹)</label>
+          <input type="number" id="formCharge" placeholder="Customer Charge">
+        </div>
+        <div class="form-group">
+          <label for="govtFee">Govt Fee / Challan (₹)</label>
+          <input type="number" id="govtFee" placeholder="Official Fee">
+        </div>
+        <div class="form-group">
+          <label for="repairCharge">Mobile Repair Charge (₹)</label>
+          <input type="number" id="repairCharge" placeholder="0">
+        </div>
+        <button type="button" class="btn-submit" onclick="saveEntry()">Transaction Add Karein</button>
+      </div>
+    </form>
+
+    <div class="filter-section">
+      <div class="filter-group">
+        <label for="monthFilter"><b>Mahina Select Karein: </b></label>
+        <input type="month" id="monthFilter" style="width: auto;" onchange="renderTable()">
+      </div>
+      <button type="button" class="btn-delete-all" onclick="clearAllData()">Delete All Data</button>
+    </div>
+
+    <h3>Date-wise Ledger History</h3>
+
+    <div class="table-responsive">
+      <table id="ledgerTable">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Subah Cash</th>
+            <th>Extra Cash</th>
+            <th>Nikasi</th>
+            <th>Jama</th>
+            <th>UPI Recd</th>
+            <th>UPI Sent</th>
+            <th>Move Bank</th>
+            <th>Saman (Sell/Cost)</th>
+            <th>Form (Challan/Govt)</th>
+            <th>Repair</th>
+            <th>Net Profit</th>
+            <th>Wallet Bal</th>
+            <th>Sham Cash</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+
+    <div class="total-box">
+      Selected Month Net Profit: <span id="monthlyTotal">₹0.00</span>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('entryDate').valueAsDate = new Date();
+    const today = new Date();
+    const currentMonth = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0');
+    document.getElementById('monthFilter').value = currentMonth;
+
+    function calculateCommission(amount) {
+      if (!amount || amount <= 0) return 0;
+      return Math.ceil(amount / 1000) * 10;
+    }
+
+    function getStoredData() {
+      return JSON.parse(localStorage.getItem('counterLedgerGovtFeeWiseV3')) || [];
+    }
+
+    function saveEntry() {
+      const date = document.getElementById('entryDate').value;
+      const inputOpening = parseFloat(document.getElementById('openingCash').value) || 0;
+      const withdrawal = parseFloat(document.getElementById('totalWithdrawal').value) || 0;
+      const deposit = parseFloat(document.getElementById('totalDeposit').value) || 0;
+      const upiReceived = parseFloat(document.getElementById('upiReceived').value) || 0;
+      const upiSent = parseFloat(document.getElementById('upiSent').value) || 0;
+      const moveToBank = parseFloat(document.getElementById('moveToBank').value) || 0;
+      const bankTransferFee = parseFloat(document.getElementById('bankTransferFee').value) || 0;
+      const sellingPrice = parseFloat(document.getElementById('sellingPrice').value) || 0;
+      const costPrice = parseFloat(document.getElementById('costPrice').value) || 0;
+      const formCharge = parseFloat(document.getElementById('formCharge').value) || 0;
+      const govtFee = parseFloat(document.getElementById('govtFee').value) || 0;
+      const repairCharge = parseFloat(document.getElementById('repairCharge').value) || 0;
+
+      if (!date) {
+        alert('Kripya tarikh chune!');
+        return;
+      }
+
+      let data = getStoredData();
+      let record = data.find(item => item.date === date);
+
+      if (record) {
+        record.withdrawal = (record.withdrawal || 0) + withdrawal;
+        record.deposit = (record.deposit || 0) + deposit;
+        record.upiReceived = (record.upiReceived || 0) + upiReceived;
+        record.upiSent = (record.upiSent || 0) + upiSent;
+        record.moveToBank = (record.moveToBank || 0) + moveToBank;
+        record.bankTransferFee = (record.bankTransferFee || 0) + bankTransferFee;
+        record.sellingPrice = (record.sellingPrice || 0) + sellingPrice;
+        record.costPrice = (record.costPrice || 0) + costPrice;
+        record.formCharge = (record.formCharge || 0) + formCharge;
+        record.govtFee = (record.govtFee || 0) + govtFee;
+        record.repairCharge = (record.repairCharge || 0) + repairCharge;
+
+        if (inputOpening > 0) {
+          record.manualOpening = (record.manualOpening || 0) + inputOpening;
+        }
+      } else {
+        record = {
+          id: Date.now(),
+          date: date,
+          manualOpening: inputOpening,
+          withdrawal: withdrawal,
+          deposit: deposit,
+          upiReceived: upiReceived,
+          upiSent: upiSent,
+          moveToBank: moveToBank,
+          bankTransferFee: bankTransferFee,
+          sellingPrice: sellingPrice,
+          costPrice: costPrice,
+          formCharge: formCharge,
+          govtFee: govtFee,
+          repairCharge: repairCharge
+        };
+        data.push(record);
+      }
+
+      data.sort((a, b) => new Date(a.date) - new Date(b.date));
+      recalculateAllChain(data);
+
+      localStorage.setItem('counterLedgerGovtFeeWiseV3', JSON.stringify(data));
+
+      document.getElementById('openingCash').value = '';
+      document.getElementById('totalWithdrawal').value = '';
+      document.getElementById('totalDeposit').value = '';
+      document.getElementById('upiReceived').value = '';
+      document.getElementById('upiSent').value = '';
+      document.getElementById('moveToBank').value = '';
+      document.getElementById('bankTransferFee').value = '';
+      document.getElementById('sellingPrice').value = '';
+      document.getElementById('costPrice').value = '';
+      document.getElementById('formCharge').value = '';
+      document.getElementById('govtFee').value = '';
+      document.getElementById('repairCharge').value = '';
+
+      renderTable();
+    }
+
+    function recalculateAllChain(data) {
+      let previousClosingCash = 0;
+      let previousWalletBalance = 0;
+
+      data.forEach((item) => {
+        const manualOp = parseFloat(item.manualOpening) || 0;
+        const w = parseFloat(item.withdrawal) || 0;
+        const dep = parseFloat(item.deposit) || 0;
+        const upiR = parseFloat(item.upiReceived) || 0;
+        const upiS = parseFloat(item.upiSent) || 0;
+        const mtb = parseFloat(item.moveToBank) || 0;
+        const fee = parseFloat(item.bankTransferFee) || 0;
+        const sp = parseFloat(item.sellingPrice) || 0;
+        const cp = parseFloat(item.costPrice) || 0;
+        const fc = parseFloat(item.formCharge) || 0;
+        const gf = parseFloat(item.govtFee) || 0;
+        const rc = parseFloat(item.repairCharge) || 0;
+
+        item.baseOpening = previousClosingCash;
+        item.opening = item.baseOpening + manualOp;
+
+        // Commission on Withdrawal, Deposit, UPI Recd, AND UPI Sent
+        const withdrawalCommission = calculateCommission(w);
+        const depositCommission = calculateCommission(dep);
+        const upiReceivedCommission = calculateCommission(upiR);
+        const upiSentCommission = calculateCommission(upiS);
+
+        item.bankCommission = withdrawalCommission + depositCommission + upiReceivedCommission + upiSentCommission;
+        item.itemProfit = sp - cp;
+        item.formProfit = fc - gf;
+        
+        // Total Net Profit
+        item.netProfit = (item.bankCommission + item.itemProfit + item.formProfit + rc) - fee;
+
+        // Wallet Balance Formula
+        item.walletBalance = previousWalletBalance + w + upiR - dep - mtb - fee;
+
+        // Counter Closing Cash (Sham Cash)
+        item.closingCash = item.opening - w - upiR + dep + upiS + item.netProfit;
+
+        previousClosingCash = item.closingCash;
+        previousWalletBalance = item.walletBalance;
+      });
+    }
+
+    function renderTable() {
+      const selectedMonth = document.getElementById('monthFilter').value;
+      const data = getStoredData();
+      const tbody = document.getElementById('tableBody');
+      tbody.innerHTML = '';
+      let monthlyProfitSum = 0;
+      let latestWalletBalance = 0;
+
+      if (data.length > 0) {
+        latestWalletBalance = data[data.length - 1].walletBalance || 0;
+      }
+
+      data.forEach(item => {
+        if (item.date.startsWith(selectedMonth)) {
+          monthlyProfitSum += (item.netProfit || 0);
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td><b>${item.date}</b></td>
+            <td>₹${(item.opening || 0).toFixed(2)}</td>
+            <td style="color: #17a2b8; font-weight: bold;">+₹${(item.manualOpening || 0).toFixed(2)}</td>
+            <td style="color: #dc3545;">₹${(item.withdrawal || 0).toFixed(2)}</td>
+            <td style="color: #28a745;">₹${(item.deposit || 0).toFixed(2)}</td>
+            <td style="color: #0d6efd;">₹${(item.upiReceived || 0).toFixed(2)}</td>
+            <td style="color: #20c997; font-weight: bold;">+₹${(item.upiSent || 0).toFixed(2)}</td>
+            <td style="color: #fd7e14;">₹${(item.moveToBank || 0).toFixed(2)}</td>
+            <td>₹${(item.sellingPrice || 0).toFixed(0)} / ₹${(item.costPrice || 0).toFixed(0)}</td>
+            <td>₹${(item.formCharge || 0).toFixed(0)} / ₹${(item.govtFee || 0).toFixed(0)}</td>
+            <td style="color: #e83e8c; font-weight: bold;">₹${(item.repairCharge || 0).toFixed(2)}</td>
+            <td style="color: #28a745; font-weight: bold;">₹${(item.netProfit || 0).toFixed(2)}</td>
+            <td style="color: #6f42c1; font-weight: bold;">₹${(item.walletBalance || 0).toFixed(2)}</td>
+            <td style="color: #1a73e8; font-weight: bold;">₹${(item.closingCash || 0).toFixed(2)}</td>
+            <td><button class="delete-btn" onclick="deleteEntry(${item.id})">Delete</button></td>
+          `;
+          tbody.appendChild(row);
+        }
+      });
+
+      document.getElementById('monthlyTotal').innerText = '₹' + monthlyProfitSum.toFixed(2);
+      document.getElementById('walletBalanceDisplay').innerText = '₹' + latestWalletBalance.toFixed(2);
+    }
+
+    function deleteEntry(id) {
+      if (confirm("Kya aap is tarikh ka record hatana chahte hain?")) {
+        let data = getStoredData();
+        data = data.filter(item => item.id !== id);
+        recalculateAllChain(data);
+        localStorage.setItem('counterLedgerGovtFeeWiseV3', JSON.stringify(data));
+        renderTable();
+      }
+    }
+
+    function clearAllData() {
+      if (confirm("Isse poora saved data delete ho jayega!")) {
+        localStorage.removeItem('counterLedgerGovtFeeWiseV3');
+        renderTable();
+      }
+    }
+
+    window.onload = renderTable;
+  </script>
+</body>
+</html>
