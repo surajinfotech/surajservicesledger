@@ -241,8 +241,8 @@
           <input type="number" id="moveToBank" placeholder="Wallet (-)">
         </div>
         <div class="form-group">
-          <label for="bankTransferFee">Move To Bank Fee (₹)</label>
-          <input type="number" id="bankTransferFee" placeholder="Fee (Wallet & Profit -)">
+          <label for="otherBillPayment">Other Bill Payment (₹)</label>
+          <input type="number" id="otherBillPayment" placeholder="Wallet (-)">
         </div>
         <div class="form-group">
           <label for="sellingPrice">Saman Selling Price (₹)</label>
@@ -290,6 +290,7 @@
             <th>UPI Recd</th>
             <th>UPI Sent</th>
             <th>Move Bank</th>
+            <th>Other Bill</th>
             <th>Saman (Sell/Cost)</th>
             <th>Form (Challan/Govt)</th>
             <th>Repair</th>
@@ -320,7 +321,7 @@
     }
 
     function getStoredData() {
-      return JSON.parse(localStorage.getItem('counterLedgerGovtFeeWiseV3')) || [];
+      return JSON.parse(localStorage.getItem('counterLedgerGovtFeeWiseV5')) || [];
     }
 
     function saveEntry() {
@@ -331,7 +332,7 @@
       const upiReceived = parseFloat(document.getElementById('upiReceived').value) || 0;
       const upiSent = parseFloat(document.getElementById('upiSent').value) || 0;
       const moveToBank = parseFloat(document.getElementById('moveToBank').value) || 0;
-      const bankTransferFee = parseFloat(document.getElementById('bankTransferFee').value) || 0;
+      const otherBillPayment = parseFloat(document.getElementById('otherBillPayment').value) || 0;
       const sellingPrice = parseFloat(document.getElementById('sellingPrice').value) || 0;
       const costPrice = parseFloat(document.getElementById('costPrice').value) || 0;
       const formCharge = parseFloat(document.getElementById('formCharge').value) || 0;
@@ -352,7 +353,7 @@
         record.upiReceived = (record.upiReceived || 0) + upiReceived;
         record.upiSent = (record.upiSent || 0) + upiSent;
         record.moveToBank = (record.moveToBank || 0) + moveToBank;
-        record.bankTransferFee = (record.bankTransferFee || 0) + bankTransferFee;
+        record.otherBillPayment = (record.otherBillPayment || 0) + otherBillPayment;
         record.sellingPrice = (record.sellingPrice || 0) + sellingPrice;
         record.costPrice = (record.costPrice || 0) + costPrice;
         record.formCharge = (record.formCharge || 0) + formCharge;
@@ -372,7 +373,7 @@
           upiReceived: upiReceived,
           upiSent: upiSent,
           moveToBank: moveToBank,
-          bankTransferFee: bankTransferFee,
+          otherBillPayment: otherBillPayment,
           sellingPrice: sellingPrice,
           costPrice: costPrice,
           formCharge: formCharge,
@@ -385,7 +386,7 @@
       data.sort((a, b) => new Date(a.date) - new Date(b.date));
       recalculateAllChain(data);
 
-      localStorage.setItem('counterLedgerGovtFeeWiseV3', JSON.stringify(data));
+      localStorage.setItem('counterLedgerGovtFeeWiseV5', JSON.stringify(data));
 
       document.getElementById('openingCash').value = '';
       document.getElementById('totalWithdrawal').value = '';
@@ -393,7 +394,7 @@
       document.getElementById('upiReceived').value = '';
       document.getElementById('upiSent').value = '';
       document.getElementById('moveToBank').value = '';
-      document.getElementById('bankTransferFee').value = '';
+      document.getElementById('otherBillPayment').value = '';
       document.getElementById('sellingPrice').value = '';
       document.getElementById('costPrice').value = '';
       document.getElementById('formCharge').value = '';
@@ -414,7 +415,7 @@
         const upiR = parseFloat(item.upiReceived) || 0;
         const upiS = parseFloat(item.upiSent) || 0;
         const mtb = parseFloat(item.moveToBank) || 0;
-        const fee = parseFloat(item.bankTransferFee) || 0;
+        const billPay = parseFloat(item.otherBillPayment) || 0;
         const sp = parseFloat(item.sellingPrice) || 0;
         const cp = parseFloat(item.costPrice) || 0;
         const fc = parseFloat(item.formCharge) || 0;
@@ -435,13 +436,13 @@
         item.formProfit = fc - gf;
         
         // Total Net Profit
-        item.netProfit = (item.bankCommission + item.itemProfit + item.formProfit + rc) - fee;
+        item.netProfit = item.bankCommission + item.itemProfit + item.formProfit + rc;
 
-        // Wallet Balance Formula
-        item.walletBalance = previousWalletBalance + w + upiR - dep - mtb - fee;
+        // Wallet Balance Formula (Other Bill Payment deducted from wallet)
+        item.walletBalance = previousWalletBalance + w + upiR - dep - mtb - billPay;
 
-        // Counter Closing Cash (Sham Cash)
-        item.closingCash = item.opening - w - upiR + dep + upiS + item.netProfit;
+        // Counter Closing Cash (Sham Cash) - Other Bill Payment added to closing cash
+        item.closingCash = item.opening - w - upiR + dep + upiS + billPay + item.netProfit;
 
         previousClosingCash = item.closingCash;
         previousWalletBalance = item.walletBalance;
@@ -473,6 +474,7 @@
             <td style="color: #0d6efd;">₹${(item.upiReceived || 0).toFixed(2)}</td>
             <td style="color: #20c997; font-weight: bold;">+₹${(item.upiSent || 0).toFixed(2)}</td>
             <td style="color: #fd7e14;">₹${(item.moveToBank || 0).toFixed(2)}</td>
+            <td style="color: #e83e8c;">₹${(item.otherBillPayment || 0).toFixed(2)}</td>
             <td>₹${(item.sellingPrice || 0).toFixed(0)} / ₹${(item.costPrice || 0).toFixed(0)}</td>
             <td>₹${(item.formCharge || 0).toFixed(0)} / ₹${(item.govtFee || 0).toFixed(0)}</td>
             <td style="color: #e83e8c; font-weight: bold;">₹${(item.repairCharge || 0).toFixed(2)}</td>
@@ -494,14 +496,14 @@
         let data = getStoredData();
         data = data.filter(item => item.id !== id);
         recalculateAllChain(data);
-        localStorage.setItem('counterLedgerGovtFeeWiseV3', JSON.stringify(data));
+        localStorage.setItem('counterLedgerGovtFeeWiseV5', JSON.stringify(data));
         renderTable();
       }
     }
 
     function clearAllData() {
       if (confirm("Isse poora saved data delete ho jayega!")) {
-        localStorage.removeItem('counterLedgerGovtFeeWiseV3');
+        localStorage.removeItem('counterLedgerGovtFeeWiseV5');
         renderTable();
       }
     }
