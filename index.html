@@ -331,7 +331,7 @@
       const upiReceived = parseFloat(document.getElementById('upiReceived').value) || 0;
       const upiSent = parseFloat(document.getElementById('upiSent').value) || 0;
       const moveToBank = parseFloat(document.getElementById('moveToBank').value) || 0;
-      const bankTransferFee = parseFloat(document.getElementById('billpayment').value) || 0;
+      const bankTransferFee = parseFloat(document.getElementById('bankTransferFee').value) || 0;
       const sellingPrice = parseFloat(document.getElementById('sellingPrice').value) || 0;
       const costPrice = parseFloat(document.getElementById('costPrice').value) || 0;
       const formCharge = parseFloat(document.getElementById('formCharge').value) || 0;
@@ -352,7 +352,7 @@
         record.upiReceived = (record.upiReceived || 0) + upiReceived;
         record.upiSent = (record.upiSent || 0) + upiSent;
         record.moveToBank = (record.moveToBank || 0) + moveToBank;
-        record.bankTransferFee = (record.billpyment || 0) + bill payment;
+        record.bankTransferFee = (record.bankTransferFee || 0) + bankTransferFee;
         record.sellingPrice = (record.sellingPrice || 0) + sellingPrice;
         record.costPrice = (record.costPrice || 0) + costPrice;
         record.formCharge = (record.formCharge || 0) + formCharge;
@@ -372,7 +372,7 @@
           upiReceived: upiReceived,
           upiSent: upiSent,
           moveToBank: moveToBank,
-          bankTransferFee: billpayment,
+          bankTransferFee: bankTransferFee,
           sellingPrice: sellingPrice,
           costPrice: costPrice,
           formCharge: formCharge,
@@ -393,7 +393,7 @@
       document.getElementById('upiReceived').value = '';
       document.getElementById('upiSent').value = '';
       document.getElementById('moveToBank').value = '';
-      document.getElementById('billpayment').value = '';
+      document.getElementById('bankTransferFee').value = '';
       document.getElementById('sellingPrice').value = '';
       document.getElementById('costPrice').value = '';
       document.getElementById('formCharge').value = '';
@@ -414,7 +414,7 @@
         const upiR = parseFloat(item.upiReceived) || 0;
         const upiS = parseFloat(item.upiSent) || 0;
         const mtb = parseFloat(item.moveToBank) || 0;
-        const fee = parseFloat(item.billpayment) || 0;
+        const fee = parseFloat(item.bankTransferFee) || 0;
         const sp = parseFloat(item.sellingPrice) || 0;
         const cp = parseFloat(item.costPrice) || 0;
         const fc = parseFloat(item.formCharge) || 0;
