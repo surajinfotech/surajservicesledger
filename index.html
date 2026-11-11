@@ -4,6 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Complete Shop Ledger & Wallet System</title>
+  <!-- External Libraries for Excel Export/Import and PDF Generation -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
   <style>
     * {
       box-sizing: border-box;
@@ -138,6 +142,42 @@
       font-size: 13px;
     }
 
+    /* Action Toolbar Styles for Import/Export/Backup/Share */
+    .action-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 15px 0;
+      padding: 12px;
+      background-color: #f8f9fa;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      justify-content: center;
+    }
+    .tool-btn {
+      padding: 8px 12px;
+      font-size: 13px;
+      font-weight: 600;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      color: white;
+      transition: opacity 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .tool-btn:hover {
+      opacity: 0.9;
+    }
+    .btn-excel-exp  { background-color: #198754; }
+    .btn-pdf-exp    { background-color: #d63384; }
+    .btn-backup     { background-color: #0dcaf0; color: #000; }
+    .btn-restore    { background-color: #ffc107; color: #000; }
+    .btn-import     { background-color: #6f42c1; }
+    .btn-whatsapp   { background-color: #25d366; }
+    .btn-share-file { background-color: #fd7e14; }
+
     .table-responsive {
       width: 100%;
       overflow-x: auto;
@@ -148,7 +188,7 @@
       width: 100%;
       border-collapse: collapse;
       font-size: 11px;
-      min-width: 1100px;
+      min-width: 950px;
     }
     th, td {
       border: 1px solid #e0e0e0;
@@ -241,32 +281,27 @@
           <input type="number" id="moveToBank" placeholder="Wallet (-)">
         </div>
         <div class="form-group">
-          <label for="otherBillPayment">Other Bill Payment (₹)</label>
-          <input type="number" id="otherBillPayment" placeholder="Wallet (-)">
-        </div>
-        <div class="form-group">
-          <label for="sellingPrice">Saman Selling Price (₹)</label>
-          <input type="number" id="sellingPrice" placeholder="0">
-        </div>
-        <div class="form-group">
-          <label for="costPrice">Saman Cost Price (₹)</label>
-          <input type="number" id="costPrice" placeholder="0">
-        </div>
-        <div class="form-group">
-          <label for="formCharge">Form Total Charge (₹)</label>
-          <input type="number" id="formCharge" placeholder="Customer Charge">
-        </div>
-        <div class="form-group">
-          <label for="govtFee">Govt Fee / Challan (₹)</label>
-          <input type="number" id="govtFee" placeholder="Official Fee">
-        </div>
-        <div class="form-group">
-          <label for="repairCharge">Mobile Repair Charge (₹)</label>
-          <input type="number" id="repairCharge" placeholder="0">
+          <label for="billpayment">billpayment (₹)</label>
+          <input type="number" id="billpayment" placeholder="Customer Cash (+)">
         </div>
         <button type="button" class="btn-submit" onclick="saveEntry()">Transaction Add Karein</button>
       </div>
     </form>
+
+    <!-- Import/Export & WhatsApp Sharing Toolbar -->
+    <div class="action-toolbar">
+      <button type="button" class="tool-btn btn-excel-exp" onclick="exportToExcel()">📊 Export Excel</button>
+      <button type="button" class="tool-btn btn-pdf-exp" onclick="exportToPDF()">📄 Export PDF</button>
+      <button type="button" class="tool-btn btn-backup" onclick="exportJSONBackup()">💾 Backup JSON</button>
+      <button type="button" class="tool-btn btn-restore" onclick="document.getElementById('jsonFileInput').click()">📥 Restore JSON</button>
+      <button type="button" class="tool-btn btn-import" onclick="document.getElementById('excelFileInput').click()">📁 Import Excel</button>
+      <button type="button" class="tool-btn btn-whatsapp" onclick="shareOnWhatsApp()">💬 WhatsApp Share</button>
+      <button type="button" class="tool-btn btn-share-file" onclick="sharePDFFile()">📤 Share PDF File</button>
+      
+      <!-- Hidden File Inputs -->
+      <input type="file" id="jsonFileInput" accept=".json" style="display: none;" onchange="importJSONBackup(event)">
+      <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv" style="display: none;" onchange="importExcelStatement(event)">
+    </div>
 
     <div class="filter-section">
       <div class="filter-group">
@@ -278,7 +313,7 @@
 
     <h3>Date-wise Ledger History</h3>
 
-    <div class="table-responsive">
+    <div class="table-responsive" id="pdfPrintArea">
       <table id="ledgerTable">
         <thead>
           <tr>
@@ -289,15 +324,12 @@
             <th>Jama</th>
             <th>UPI Recd</th>
             <th>UPI Sent</th>
-            <th>Move Bank</th>
-            <th>Other Bill</th>
-            <th>Saman (Sell/Cost)</th>
-            <th>Form (Challan/Govt)</th>
-            <th>Repair</th>
-            <th>Net Profit</th>
+            <th>Move to Bank</th>
+            <th>billpayment</th>
+            <th>Commission</th>
             <th>Wallet Bal</th>
             <th>Sham Cash</th>
-            <th>Action</th>
+            <th class="no-print">Action</th>
           </tr>
         </thead>
         <tbody id="tableBody"></tbody>
@@ -305,7 +337,7 @@
     </div>
 
     <div class="total-box">
-      Selected Month Net Profit: <span id="monthlyTotal">₹0.00</span>
+      Selected Month Total Commission: <span id="monthlyTotal">₹0.00</span>
     </div>
   </div>
 
@@ -321,7 +353,7 @@
     }
 
     function getStoredData() {
-      return JSON.parse(localStorage.getItem('counterLedgerGovtFeeWiseV5')) || [];
+      return JSON.parse(localStorage.getItem('counterLedgerCleanV7')) || [];
     }
 
     function saveEntry() {
@@ -332,12 +364,7 @@
       const upiReceived = parseFloat(document.getElementById('upiReceived').value) || 0;
       const upiSent = parseFloat(document.getElementById('upiSent').value) || 0;
       const moveToBank = parseFloat(document.getElementById('moveToBank').value) || 0;
-      const otherBillPayment = parseFloat(document.getElementById('otherBillPayment').value) || 0;
-      const sellingPrice = parseFloat(document.getElementById('sellingPrice').value) || 0;
-      const costPrice = parseFloat(document.getElementById('costPrice').value) || 0;
-      const formCharge = parseFloat(document.getElementById('formCharge').value) || 0;
-      const govtFee = parseFloat(document.getElementById('govtFee').value) || 0;
-      const repairCharge = parseFloat(document.getElementById('repairCharge').value) || 0;
+      const billPaymentAmt = parseFloat(document.getElementById('billpayment').value) || 0;
 
       if (!date) {
         alert('Kripya tarikh chune!');
@@ -353,12 +380,7 @@
         record.upiReceived = (record.upiReceived || 0) + upiReceived;
         record.upiSent = (record.upiSent || 0) + upiSent;
         record.moveToBank = (record.moveToBank || 0) + moveToBank;
-        record.otherBillPayment = (record.otherBillPayment || 0) + otherBillPayment;
-        record.sellingPrice = (record.sellingPrice || 0) + sellingPrice;
-        record.costPrice = (record.costPrice || 0) + costPrice;
-        record.formCharge = (record.formCharge || 0) + formCharge;
-        record.govtFee = (record.govtFee || 0) + govtFee;
-        record.repairCharge = (record.repairCharge || 0) + repairCharge;
+        record.billPaymentAmt = (record.billPaymentAmt || 0) + billPaymentAmt;
 
         if (inputOpening > 0) {
           record.manualOpening = (record.manualOpening || 0) + inputOpening;
@@ -373,12 +395,7 @@
           upiReceived: upiReceived,
           upiSent: upiSent,
           moveToBank: moveToBank,
-          otherBillPayment: otherBillPayment,
-          sellingPrice: sellingPrice,
-          costPrice: costPrice,
-          formCharge: formCharge,
-          govtFee: govtFee,
-          repairCharge: repairCharge
+          billPaymentAmt: billPaymentAmt
         };
         data.push(record);
       }
@@ -386,7 +403,7 @@
       data.sort((a, b) => new Date(a.date) - new Date(b.date));
       recalculateAllChain(data);
 
-      localStorage.setItem('counterLedgerGovtFeeWiseV5', JSON.stringify(data));
+      localStorage.setItem('counterLedgerCleanV7', JSON.stringify(data));
 
       document.getElementById('openingCash').value = '';
       document.getElementById('totalWithdrawal').value = '';
@@ -394,12 +411,7 @@
       document.getElementById('upiReceived').value = '';
       document.getElementById('upiSent').value = '';
       document.getElementById('moveToBank').value = '';
-      document.getElementById('otherBillPayment').value = '';
-      document.getElementById('sellingPrice').value = '';
-      document.getElementById('costPrice').value = '';
-      document.getElementById('formCharge').value = '';
-      document.getElementById('govtFee').value = '';
-      document.getElementById('repairCharge').value = '';
+      document.getElementById('billpayment').value = '';
 
       renderTable();
     }
@@ -415,34 +427,21 @@
         const upiR = parseFloat(item.upiReceived) || 0;
         const upiS = parseFloat(item.upiSent) || 0;
         const mtb = parseFloat(item.moveToBank) || 0;
-        const billPay = parseFloat(item.otherBillPayment) || 0;
-        const sp = parseFloat(item.sellingPrice) || 0;
-        const cp = parseFloat(item.costPrice) || 0;
-        const fc = parseFloat(item.formCharge) || 0;
-        const gf = parseFloat(item.govtFee) || 0;
-        const rc = parseFloat(item.repairCharge) || 0;
+        const bp = parseFloat(item.billPaymentAmt) || 0;
 
         item.baseOpening = previousClosingCash;
         item.opening = item.baseOpening + manualOp;
 
-        // Commission on Withdrawal, Deposit, UPI Recd, AND UPI Sent
         const withdrawalCommission = calculateCommission(w);
         const depositCommission = calculateCommission(dep);
         const upiReceivedCommission = calculateCommission(upiR);
         const upiSentCommission = calculateCommission(upiS);
 
         item.bankCommission = withdrawalCommission + depositCommission + upiReceivedCommission + upiSentCommission;
-        item.itemProfit = sp - cp;
-        item.formProfit = fc - gf;
-        
-        // Total Net Profit
-        item.netProfit = item.bankCommission + item.itemProfit + item.formProfit + rc;
+        item.netProfit = item.bankCommission;
 
-        // Wallet Balance Formula (Other Bill Payment deducted from wallet)
-        item.walletBalance = previousWalletBalance + w + upiR - dep - mtb - billPay;
-
-        // Counter Closing Cash (Sham Cash) - Other Bill Payment added to closing cash
-        item.closingCash = item.opening - w - upiR + dep + upiS + billPay + item.netProfit;
+        item.walletBalance = previousWalletBalance + w + upiR - dep - mtb - bp;
+        item.closingCash = item.opening - w - upiR + dep + upiS + bp + item.netProfit;
 
         previousClosingCash = item.closingCash;
         previousWalletBalance = item.walletBalance;
@@ -474,14 +473,11 @@
             <td style="color: #0d6efd;">₹${(item.upiReceived || 0).toFixed(2)}</td>
             <td style="color: #20c997; font-weight: bold;">+₹${(item.upiSent || 0).toFixed(2)}</td>
             <td style="color: #fd7e14;">₹${(item.moveToBank || 0).toFixed(2)}</td>
-            <td style="color: #e83e8c;">₹${(item.otherBillPayment || 0).toFixed(2)}</td>
-            <td>₹${(item.sellingPrice || 0).toFixed(0)} / ₹${(item.costPrice || 0).toFixed(0)}</td>
-            <td>₹${(item.formCharge || 0).toFixed(0)} / ₹${(item.govtFee || 0).toFixed(0)}</td>
-            <td style="color: #e83e8c; font-weight: bold;">₹${(item.repairCharge || 0).toFixed(2)}</td>
+            <td style="color: #ffc107; font-weight: bold;">+₹${(item.billPaymentAmt || 0).toFixed(2)}</td>
             <td style="color: #28a745; font-weight: bold;">₹${(item.netProfit || 0).toFixed(2)}</td>
             <td style="color: #6f42c1; font-weight: bold;">₹${(item.walletBalance || 0).toFixed(2)}</td>
             <td style="color: #1a73e8; font-weight: bold;">₹${(item.closingCash || 0).toFixed(2)}</td>
-            <td><button class="delete-btn" onclick="deleteEntry(${item.id})">Delete</button></td>
+            <td class="no-print"><button class="delete-btn" onclick="deleteEntry(${item.id})">Delete</button></td>
           `;
           tbody.appendChild(row);
         }
@@ -496,16 +492,250 @@
         let data = getStoredData();
         data = data.filter(item => item.id !== id);
         recalculateAllChain(data);
-        localStorage.setItem('counterLedgerGovtFeeWiseV5', JSON.stringify(data));
+        localStorage.setItem('counterLedgerCleanV7', JSON.stringify(data));
         renderTable();
       }
     }
 
     function clearAllData() {
       if (confirm("Isse poora saved data delete ho jayega!")) {
-        localStorage.removeItem('counterLedgerGovtFeeWiseV5');
+        localStorage.removeItem('counterLedgerCleanV7');
         renderTable();
       }
+    }
+
+    /* --- ORIGINAL UTILITY FUNCTIONS --- */
+
+    function exportToExcel() {
+      const selectedMonth = document.getElementById('monthFilter').value;
+      const data = getStoredData().filter(item => item.date.startsWith(selectedMonth));
+      
+      if (data.length === 0) {
+        alert('Export karne ke liye chune gaye mahine mein koi data nahi hai!');
+        return;
+      }
+
+      const formattedData = data.map(item => ({
+        "Date": item.date,
+        "Subah Cash": item.opening || 0,
+        "Extra Cash": item.manualOpening || 0,
+        "Cash Nikasi": item.withdrawal || 0,
+        "Cash Jama": item.deposit || 0,
+        "UPI Recd": item.upiReceived || 0,
+        "UPI Sent": item.upiSent || 0,
+        "Move to Bank": item.moveToBank || 0,
+        "Bill Payment": item.billPaymentAmt || 0,
+        "Commission": item.netProfit || 0,
+        "Wallet Balance": item.walletBalance || 0,
+        "Sham Cash": item.closingCash || 0
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(formattedData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Ledger");
+      XLSX.writeFile(workbook, `Shop_Ledger_${selectedMonth}.xlsx`);
+    }
+
+    function exportToPDF() {
+      const selectedMonth = document.getElementById('monthFilter').value;
+      const element = document.getElementById('pdfPrintArea');
+      
+      const actionCells = element.querySelectorAll('.no-print');
+      actionCells.forEach(cell => cell.style.display = 'none');
+
+      const opt = {
+        margin:       [10, 10, 10, 10],
+        filename:     `Shop_Ledger_${selectedMonth}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2 },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' }
+      };
+
+      html2pdf().set(opt).from(element).save().then(() => {
+        actionCells.forEach(cell => cell.style.display = '');
+      });
+    }
+
+    function exportJSONBackup() {
+      const data = getStoredData();
+      if (data.length === 0) {
+        alert('Backup lene ke liye koi data nahi hai!');
+        return;
+      }
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `Ledger_Backup_${new Date().toISOString().slice(0, 10)}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    }
+
+    function importJSONBackup(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const importedData = JSON.parse(e.target.result);
+          if (Array.isArray(importedData)) {
+            recalculateAllChain(importedData);
+            localStorage.setItem('counterLedgerCleanV7', JSON.stringify(importedData));
+            alert('JSON Backup safaltapurvak restore ho gaya hai!');
+            renderTable();
+          } else {
+            alert('Invalid JSON file format!');
+          }
+        } catch (err) {
+          alert('Error parsing JSON file!');
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = '';
+    }
+
+    function importExcelStatement(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const dataBuffer = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(dataBuffer, { type: 'array' });
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+          if (jsonData.length === 0) {
+            alert('Excel file khaali hai ya format sahi nahi hai!');
+            return;
+          }
+
+          let currentData = getStoredData();
+
+          jsonData.forEach(row => {
+            const dateVal = row['Date'] || row['date'] || row['Tarikh'] || row['TARIKH'];
+            if (!dateVal) return;
+
+            let parsedDate = dateVal;
+            if (typeof dateVal === 'number') {
+              parsedDate = new Date((dateVal - (25567 + 2)) * 86400 * 1000).toISOString().slice(0, 10);
+            }
+
+            const inputOpening = parseFloat(row['Extra Cash'] || row['Subah Extra Cash'] || 0);
+            const withdrawal = parseFloat(row['Cash Nikasi'] || row['Nikasi'] || row['Withdrawal'] || 0);
+            const deposit = parseFloat(row['Cash Jama'] || row['Jama'] || row['Deposit'] || 0);
+            const upiReceived = parseFloat(row['UPI Recd'] || row['UPI Received'] || row['Wallet In'] || 0);
+            const upiSent = parseFloat(row['UPI Sent'] || row['Send UPI'] || 0);
+            const moveToBank = parseFloat(row['Move to Bank'] || 0);
+            const billPaymentAmt = parseFloat(row['Bill Payment'] || row['billpayment'] || 0);
+
+            let record = currentData.find(item => item.date === parsedDate);
+            if (record) {
+              record.withdrawal = (record.withdrawal || 0) + withdrawal;
+              record.deposit = (record.deposit || 0) + deposit;
+              record.upiReceived = (record.upiReceived || 0) + upiReceived;
+              record.upiSent = (record.upiSent || 0) + upiSent;
+              record.moveToBank = (record.moveToBank || 0) + moveToBank;
+              record.billPaymentAmt = (record.billPaymentAmt || 0) + billPaymentAmt;
+
+              if (inputOpening > 0) {
+                record.manualOpening = (record.manualOpening || 0) + inputOpening;
+              }
+            } else {
+              record = {
+                id: Date.now() + Math.random(),
+                date: parsedDate,
+                manualOpening: inputOpening,
+                withdrawal: withdrawal,
+                deposit: deposit,
+                upiReceived: upiReceived,
+                upiSent: upiSent,
+                moveToBank: moveToBank,
+                billPaymentAmt: billPaymentAmt
+              };
+              currentData.push(record);
+            }
+          });
+
+          currentData.sort((a, b) => new Date(a.date) - new Date(b.date));
+          recalculateAllChain(currentData);
+          localStorage.setItem('counterLedgerCleanV7', JSON.stringify(currentData));
+          alert('Excel/Statement data Safaltapurvak import ho gaya!');
+          renderTable();
+
+        } catch (err) {
+          alert('File read karne mein error aayi! Kripya sahi Excel/CSV format upload karein.');
+        }
+      };
+      reader.readAsArrayBuffer(file);
+      event.target.value = '';
+    }
+
+    /* --- WHATSAPP & FILE SHARE FUNCTIONS --- */
+
+    // 1. Send Monthly Summary on WhatsApp
+    function shareOnWhatsApp() {
+      const selectedMonth = document.getElementById('monthFilter').value;
+      const data = getStoredData().filter(item => item.date.startsWith(selectedMonth));
+      
+      if (data.length === 0) {
+        alert('Share karne ke liye is mahine ka koi data nahi hai!');
+        return;
+      }
+
+      let totalCommission = 0;
+      data.forEach(item => { totalCommission += (item.netProfit || 0); });
+      let latestWallet = data.length > 0 ? data[data.length - 1].walletBalance : 0;
+
+      const message = `📊 *Shop Ledger Summary (${selectedMonth})* 📊\n` +
+                      `-----------------------------------\n` +
+                      `Total Entries: ${data.length}\n` +
+                      `Total Commission: ₹${totalCommission.toFixed(2)}\n` +
+                      `Wallet Balance: ₹${latestWallet.toFixed(2)}\n` +
+                      `-----------------------------------\n` +
+                      `Generated via Shop Ledger App`;
+
+      const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
+      window.open(whatsappUrl, '_blank');
+    }
+
+    // 2. Share Generated PDF File Directly via Web Share API
+    function sharePDFFile() {
+      const selectedMonth = document.getElementById('monthFilter').value;
+      const element = document.getElementById('pdfPrintArea');
+      
+      const actionCells = element.querySelectorAll('.no-print');
+      actionCells.forEach(cell => cell.style.display = 'none');
+
+      const opt = {
+        margin:       [10, 10, 10, 10],
+        filename:     `Shop_Ledger_${selectedMonth}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2 },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' }
+      };
+
+      html2pdf().set(opt).from(element).outputPdf('blob').then((pdfBlob) => {
+        actionCells.forEach(cell => cell.style.display = '');
+        const file = new File([pdfBlob], `Shop_Ledger_${selectedMonth}.pdf`, { type: 'application/pdf' });
+        
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          navigator.share({
+            title: 'Shop Ledger PDF',
+            text: `Ledger PDF for month ${selectedMonth}`,
+            files: [file]
+          }).catch(err => console.log('Sharing failed', err));
+        } else {
+          const link = document.createElement('a');
+          link.href = URL.createObjectURL(pdfBlob);
+          link.download = `Shop_Ledger_${selectedMonth}.pdf`;
+          link.click();
+          alert('Aapka browser direct file share support nahi karta, isliye PDF download ho gayi hai. Aap ise manually WhatsApp par bhej sakte hain.');
+        }
+      });
     }
 
     window.onload = renderTable;
