@@ -291,13 +291,13 @@
       <button type="button" class="tool-btn btn-excel-exp" onclick="exportToExcel()">📊 Export Excel</button>
       <button type="button" class="tool-btn btn-pdf-exp" onclick="exportToPDF()">📄 Export PDF</button>
       <button type="button" class="tool-btn btn-backup" onclick="exportJSONBackup()">💾 Backup JSON</button>
-      <button type="button" class="tool-btn btn-restore" onclick="document.getElementById('jsonFileInput'].click()">📥 Restore JSON</button>
-      <button type="button" class="tool-btn btn-import" onclick="document.getElementById('excelFileInput'].click()">📁 Import Excel</button>
+      <button type="button" class="tool-btn btn-restore" onclick="document.getElementById('jsonFileInput').click()">📥 Restore JSON</button>
+      <button type="button" class="tool-btn btn-import" onclick="document.getElementById('excelFileInput').click()">📁 Import Excel</button>
       <button type="button" class="tool-btn btn-whatsapp" onclick="shareOnWhatsApp()">💬 WhatsApp Share</button>
       <button type="button" class="tool-btn btn-share-file" onclick="sharePDFFile()">📤 Share PDF File</button>
       
       <input type="file" id="jsonFileInput" accept=".json" style="display: none;" onchange="importJSONBackup(event)">
-      <input type="file" id="excelExcelInput" accept=".xlsx, .xls, .csv" style="display: none;" onchange="importExcelStatement(event)">
+      <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv" style="display: none;" onchange="importExcelStatement(event)">
     </div>
 
     <div class="filter-section">
@@ -344,13 +344,12 @@
     const currentMonth = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0');
     document.getElementById('monthFilter').value = currentMonth;
 
-    // Har ek naye transaction amount ke hisaab se commission calculate karne ka function
+    // Per ₹1000 (ya uske upar ke hisse) par ₹10 Commission Logic (Math.ceil(amount / 1000) * 10)
+    // Jaise: 1000 par ₹10, 2000 par ₹20, 2100 se 2999 par ₹30, 3100 se 3999 par ₹40.
     function calculateSingleCommission(amount) {
       if (!amount || amount <= 0) return 0;
-      if (amount < 100) {
-        return amount; // 100 se kam hone par poora amount commission mein
-      }
-      return 10; // 100 ya usse zyada (jaise 200, 300, 500, 700) par har baar fix ₹10 commission
+      let thousands = Math.ceil(amount / 1000);
+      return thousands * 10;
     }
 
     function getStoredData() {
@@ -372,7 +371,7 @@
         return;
       }
 
-      // Is current transaction ka alag se commission calculate karenge
+      // Nikasi, Jama, UPI Recd, aur UPI Sent sabhi par commission rule lagu hoga
       const currentTxnCommission = calculateSingleCommission(withdrawal) + 
                                    calculateSingleCommission(deposit) + 
                                    calculateSingleCommission(upiReceived) + 
@@ -382,7 +381,6 @@
       let record = data.find(item => item.date === date);
 
       if (record) {
-        // Purane record mein naye amounts aur naya commission bhi jud jayega
         record.withdrawal = (record.withdrawal || 0) + withdrawal;
         record.deposit = (record.deposit || 0) + deposit;
         record.upiReceived = (record.upiReceived || 0) + upiReceived;
@@ -442,7 +440,6 @@
         item.baseOpening = previousClosingCash;
         item.opening = item.baseOpening + manualOp;
 
-        // Jo alag-alag baar jod kar commission jama hua hai, wahi netProfit banega
         item.netProfit = parseFloat(item.manualCommission) || 0;
 
         item.walletBalance = previousWalletBalance + w + upiR - dep - mtb - bp;
