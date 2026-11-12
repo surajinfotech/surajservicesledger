@@ -142,7 +142,6 @@
       font-size: 13px;
     }
 
-    /* Action Toolbar Styles for Import/Export/Backup/Share */
     .action-toolbar {
       display: flex;
       flex-wrap: wrap;
@@ -288,19 +287,17 @@
       </div>
     </form>
 
-    <!-- Import/Export & WhatsApp Sharing Toolbar -->
     <div class="action-toolbar">
       <button type="button" class="tool-btn btn-excel-exp" onclick="exportToExcel()">📊 Export Excel</button>
       <button type="button" class="tool-btn btn-pdf-exp" onclick="exportToPDF()">📄 Export PDF</button>
       <button type="button" class="tool-btn btn-backup" onclick="exportJSONBackup()">💾 Backup JSON</button>
-      <button type="button" class="tool-btn btn-restore" onclick="document.getElementById('jsonFileInput').click()">📥 Restore JSON</button>
-      <button type="button" class="tool-btn btn-import" onclick="document.getElementById('excelFileInput').click()">📁 Import Excel</button>
+      <button type="button" class="tool-btn btn-restore" onclick="document.getElementById('jsonFileInput'].click()">📥 Restore JSON</button>
+      <button type="button" class="tool-btn btn-import" onclick="document.getElementById('excelFileInput'].click()">📁 Import Excel</button>
       <button type="button" class="tool-btn btn-whatsapp" onclick="shareOnWhatsApp()">💬 WhatsApp Share</button>
       <button type="button" class="tool-btn btn-share-file" onclick="sharePDFFile()">📤 Share PDF File</button>
       
-      <!-- Hidden File Inputs -->
       <input type="file" id="jsonFileInput" accept=".json" style="display: none;" onchange="importJSONBackup(event)">
-      <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv" style="display: none;" onchange="importExcelStatement(event)">
+      <input type="file" id="excelExcelInput" accept=".xlsx, .xls, .csv" style="display: none;" onchange="importExcelStatement(event)">
     </div>
 
     <div class="filter-section">
@@ -347,9 +344,13 @@
     const currentMonth = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0');
     document.getElementById('monthFilter').value = currentMonth;
 
-    function calculateCommission(amount) {
+    // Har ek naye transaction amount ke hisaab se commission calculate karne ka function
+    function calculateSingleCommission(amount) {
       if (!amount || amount <= 0) return 0;
-      return Math.ceil(amount / 1000) * 10;
+      if (amount < 100) {
+        return amount; // 100 se kam hone par poora amount commission mein
+      }
+      return 10; // 100 ya usse zyada (jaise 200, 300, 500, 700) par har baar fix ₹10 commission
     }
 
     function getStoredData() {
@@ -371,16 +372,24 @@
         return;
       }
 
+      // Is current transaction ka alag se commission calculate karenge
+      const currentTxnCommission = calculateSingleCommission(withdrawal) + 
+                                   calculateSingleCommission(deposit) + 
+                                   calculateSingleCommission(upiReceived) + 
+                                   calculateSingleCommission(upiSent);
+
       let data = getStoredData();
       let record = data.find(item => item.date === date);
 
       if (record) {
+        // Purane record mein naye amounts aur naya commission bhi jud jayega
         record.withdrawal = (record.withdrawal || 0) + withdrawal;
         record.deposit = (record.deposit || 0) + deposit;
         record.upiReceived = (record.upiReceived || 0) + upiReceived;
         record.upiSent = (record.upiSent || 0) + upiSent;
         record.moveToBank = (record.moveToBank || 0) + moveToBank;
         record.billPaymentAmt = (record.billPaymentAmt || 0) + billPaymentAmt;
+        record.manualCommission = (record.manualCommission || 0) + currentTxnCommission;
 
         if (inputOpening > 0) {
           record.manualOpening = (record.manualOpening || 0) + inputOpening;
@@ -395,7 +404,8 @@
           upiReceived: upiReceived,
           upiSent: upiSent,
           moveToBank: moveToBank,
-          billPaymentAmt: billPaymentAmt
+          billPaymentAmt: billPaymentAmt,
+          manualCommission: currentTxnCommission
         };
         data.push(record);
       }
@@ -432,13 +442,8 @@
         item.baseOpening = previousClosingCash;
         item.opening = item.baseOpening + manualOp;
 
-        const withdrawalCommission = calculateCommission(w);
-        const depositCommission = calculateCommission(dep);
-        const upiReceivedCommission = calculateCommission(upiR);
-        const upiSentCommission = calculateCommission(upiS);
-
-        item.bankCommission = withdrawalCommission + depositCommission + upiReceivedCommission + upiSentCommission;
-        item.netProfit = item.bankCommission;
+        // Jo alag-alag baar jod kar commission jama hua hai, wahi netProfit banega
+        item.netProfit = parseFloat(item.manualCommission) || 0;
 
         item.walletBalance = previousWalletBalance + w + upiR - dep - mtb - bp;
         item.closingCash = item.opening - w - upiR + dep + upiS + bp + item.netProfit;
@@ -503,8 +508,6 @@
         renderTable();
       }
     }
-
-    /* --- ORIGINAL UTILITY FUNCTIONS --- */
 
     function exportToExcel() {
       const selectedMonth = document.getElementById('monthFilter').value;
@@ -631,6 +634,11 @@
             const upiSent = parseFloat(row['UPI Sent'] || row['Send UPI'] || 0);
             const moveToBank = parseFloat(row['Move to Bank'] || 0);
             const billPaymentAmt = parseFloat(row['Bill Payment'] || row['billpayment'] || 0);
+            
+            const rowCommission = calculateSingleCommission(withdrawal) + 
+                                  calculateSingleCommission(deposit) + 
+                                  calculateSingleCommission(upiReceived) + 
+                                  calculateSingleCommission(upiSent);
 
             let record = currentData.find(item => item.date === parsedDate);
             if (record) {
@@ -640,6 +648,7 @@
               record.upiSent = (record.upiSent || 0) + upiSent;
               record.moveToBank = (record.moveToBank || 0) + moveToBank;
               record.billPaymentAmt = (record.billPaymentAmt || 0) + billPaymentAmt;
+              record.manualCommission = (record.manualCommission || 0) + rowCommission;
 
               if (inputOpening > 0) {
                 record.manualOpening = (record.manualOpening || 0) + inputOpening;
@@ -654,7 +663,8 @@
                 upiReceived: upiReceived,
                 upiSent: upiSent,
                 moveToBank: moveToBank,
-                billPaymentAmt: billPaymentAmt
+                billPaymentAmt: billPaymentAmt,
+                manualCommission: rowCommission
               };
               currentData.push(record);
             }
@@ -674,9 +684,6 @@
       event.target.value = '';
     }
 
-    /* --- WHATSAPP & FILE SHARE FUNCTIONS --- */
-
-    // 1. Send Monthly Summary on WhatsApp
     function shareOnWhatsApp() {
       const selectedMonth = document.getElementById('monthFilter').value;
       const data = getStoredData().filter(item => item.date.startsWith(selectedMonth));
@@ -702,7 +709,6 @@
       window.open(whatsappUrl, '_blank');
     }
 
-    // 2. Share Generated PDF File Directly via Web Share API
     function sharePDFFile() {
       const selectedMonth = document.getElementById('monthFilter').value;
       const element = document.getElementById('pdfPrintArea');
